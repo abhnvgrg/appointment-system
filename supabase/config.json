@@ -1,0 +1,14 @@
+{
+  "project_id": "your-project-id",
+  "functions": {
+    "book-appointment": {
+      "verify_jwt": false
+    },
+    "get-appointments": {
+      "verify_jwt": false
+    },
+    "check-reminders": {
+      "verify_jwt": false
+    }
+  }
+}
