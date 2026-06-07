@@ -73,7 +73,10 @@ export default function BookingForm({ onAppointmentBooked }) {
 
     setLoading(true);
     try {
-      await bookAppointment(formData);
+      await bookAppointment({
+        ...formData,
+        time: new Date(formData.time).toISOString()  // converts local IST → UTC before sending
+      });
       setMessage('Appointment booked successfully!');
       setFormData({ name: '', phone: '', time: '' });
       
