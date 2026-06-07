@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import BookingForm from './components/BookingForm';
 import Dashboard from './components/Dashboard';
-import { 
-  isDemoMode, 
-  generateDummyData, 
-  clearAllData, 
-  checkReminders, 
-  addLocalLog 
+import {
+  isDemoMode,
+  setDemoMode,
+  generateDummyData,
+  clearAllData,
+  checkReminders,
+  addLocalLog
 } from './api';
 import './App.css';
 
@@ -16,23 +17,18 @@ function App() {
   const [checkingReminders, setCheckingReminders] = useState(false);
   const [notification, setNotification] = useState(null);
 
-  // Live Clock Update
+  // Live clock
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
   const triggerToast = (message, type = 'success') => {
     setNotification({ message, type });
-    setTimeout(() => {
-      setNotification(null);
-    }, 4000);
+    setTimeout(() => setNotification(null), 4000);
   };
 
   const handleAppointmentBooked = () => {
-    // Refresh immediately to show the new appointment
     setRefreshTrigger(prev => prev + 1);
     triggerToast('Appointment booked and confirmation sent!', 'success');
   };
@@ -59,13 +55,22 @@ function App() {
       if (res.remindersSent > 0) {
         triggerToast(`Reminder check complete: Sent ${res.remindersSent} SMS alerts!`, 'success');
       } else {
-        triggerToast('Reminder check complete. No upcoming appointments found in the next hour.', 'info');
+        triggerToast('Reminder check complete. No upcoming appointments in the next hour.', 'info');
       }
     } catch (err) {
       console.error(err);
       triggerToast('Failed to execute reminder check.', 'error');
     } finally {
       setCheckingReminders(false);
+    }
+  };
+
+  const handleToggleMode = () => {
+    const confirmMsg = isDemoMode
+      ? 'Switch to Live Mode? This will connect to your real Supabase database.'
+      : 'Switch to Demo Mode? This will simulate everything locally — no real messages will be sent.';
+    if (window.confirm(confirmMsg)) {
+      setDemoMode(!isDemoMode);
     }
   };
 
@@ -92,14 +97,19 @@ function App() {
               <p className="subtitle">Serverless Event-Driven Dashboard</p>
             </div>
           </div>
-          
+
           <div className="system-status">
-            <div className="status-indicator">
+            {/* Mode toggle button */}
+            <button
+              onClick={handleToggleMode}
+              className={`mode-toggle-btn ${isDemoMode ? 'mode-toggle-demo' : 'mode-toggle-live'}`}
+              title={isDemoMode ? 'Click to switch to Live Mode' : 'Click to switch to Demo Mode'}
+            >
               <span className={`status-dot ${isDemoMode ? 'demo' : 'live'}`}></span>
-              <span className="status-text">
-                {isDemoMode ? 'Demo Sandbox Mode' : 'Live Supabase Connected'}
-              </span>
-            </div>
+              {isDemoMode ? 'Demo Mode' : 'Live Mode'}
+              <span className="toggle-hint">switch →</span>
+            </button>
+
             <div className="live-clock">
               <span className="clock-label">Local Time:</span>
               <span className="clock-time">
@@ -109,38 +119,39 @@ function App() {
           </div>
         </div>
 
-        {isDemoMode && (
-          <div className="dev-banner">
-            <div className="banner-info">
-              <span className="banner-badge">Sandbox Controls</span>
-              <span className="banner-desc">Simulate Supabase Edge Functions & Twilio SMS delivery locally.</span>
-            </div>
-            <div className="dev-actions">
-              <button 
-                onClick={handleGenerateDummy} 
-                className="btn btn-secondary"
-                id="btn-generate-dummy"
-              >
+        {/* Banner — always visible, content changes by mode */}
+        <div className={`dev-banner ${isDemoMode ? 'dev-banner-demo' : 'dev-banner-live'}`}>
+          <div className="banner-info">
+            <span className={`banner-badge ${isDemoMode ? '' : 'banner-badge-live'}`}>
+              {isDemoMode ? 'Sandbox Controls' : 'Live Controls'}
+            </span>
+            <span className="banner-desc">
+              {isDemoMode
+                ? 'Simulating Supabase Edge Functions & Twilio SMS delivery locally. No real messages sent.'
+                : 'Connected to live Supabase. Booking sends a real SMS via Twilio to verified numbers.'}
+            </span>
+          </div>
+          <div className="dev-actions">
+            {isDemoMode && (
+              <button onClick={handleGenerateDummy} className="btn btn-secondary" id="btn-generate-dummy">
                 ⚡ Load Sample Data
               </button>
-              <button 
-                onClick={handleCheckReminders} 
-                disabled={checkingReminders}
-                className="btn btn-primary"
-                id="btn-run-cron"
-              >
-                {checkingReminders ? '⏳ Running...' : '⚙️ Run Reminders Check'}
-              </button>
-              <button 
-                onClick={handleClearData} 
-                className="btn btn-danger"
-                id="btn-clear-db"
-              >
+            )}
+            <button
+              onClick={handleCheckReminders}
+              disabled={checkingReminders}
+              className="btn btn-primary"
+              id="btn-run-cron"
+            >
+              {checkingReminders ? '⏳ Running...' : '⚙️ Run Reminders Check'}
+            </button>
+            {isDemoMode && (
+              <button onClick={handleClearData} className="btn btn-danger" id="btn-clear-db">
                 🗑️ Purge DB
               </button>
-            </div>
+            )}
           </div>
-        )}
+        </div>
       </header>
 
       <main className="app-main">
@@ -171,4 +182,3 @@ function App() {
 }
 
 export default App;
-
