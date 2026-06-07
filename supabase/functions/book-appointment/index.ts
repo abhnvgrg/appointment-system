@@ -72,27 +72,30 @@ async function sendConfirmationMessage(phone, name) {
   try {
     const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID')
     const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN')
-    const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER')
+    const twilioWhatsAppFrom = Deno.env.get('TWILIO_WHATSAPP_FROM')  // ← was TWILIO_PHONE_NUMBER
 
-    if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
+    if (!twilioAccountSid || !twilioAuthToken || !twilioWhatsAppFrom) {
       console.log('Twilio credentials not configured, skipping confirmation message')
       return
     }
 
-    const message = `Hi ${name}, your appointment has been confirmed. You will receive a reminder before your scheduled time.`
+    const message = `Hi ${name}, your appointment has been confirmed! 📅 You will receive a reminder 1 hour before your scheduled time.`
 
     const formData = new FormData()
-    formData.append('To', phone)
-    formData.append('From', twilioPhoneNumber)
+    formData.append('To', `whatsapp:${phone}`)           // ← was bare phone
+    formData.append('From', twilioWhatsAppFrom)           // ← already has whatsapp: prefix from env
     formData.append('Body', message)
 
-    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
-      },
-      body: formData,
-    })
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
+        },
+        body: formData,
+      }
+    )
 
     if (!response.ok) {
       console.error('Failed to send confirmation message:', await response.text())
