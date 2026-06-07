@@ -57,7 +57,7 @@
 .system-status {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 12px;
 }
 
 .status-indicator {
@@ -75,6 +75,7 @@
   height: 8px;
   border-radius: 50%;
   position: relative;
+  flex-shrink: 0;
 }
 
 .status-dot.live {
@@ -117,17 +118,81 @@
   color: var(--text-primary);
 }
 
+/* ── Mode Toggle Button ───────────────────────────────────────── */
+.mode-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  letter-spacing: 0.02em;
+}
+
+.mode-toggle-btn:hover {
+  transform: translateY(-1px);
+}
+
+.mode-toggle-btn:active {
+  transform: translateY(0);
+}
+
+.mode-toggle-live {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: #6ee7b7;
+}
+
+.mode-toggle-live:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+}
+
+.mode-toggle-demo {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.25);
+  color: #fcd34d;
+}
+
+.mode-toggle-demo:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.15);
+}
+
+.toggle-hint {
+  font-size: 0.68rem;
+  opacity: 0.55;
+  font-weight: 500;
+  margin-left: 2px;
+}
+
 /* Developer Sandbox Banner */
 .dev-banner {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(245, 158, 11, 0.03);
-  border: 1px solid rgba(245, 158, 11, 0.15);
   border-radius: var(--radius-md);
   padding: 12px 20px;
   flex-wrap: wrap;
   gap: 16px;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.dev-banner-demo {
+  background: rgba(245, 158, 11, 0.03);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+}
+
+.dev-banner-live {
+  background: rgba(16, 185, 129, 0.03);
+  border: 1px solid rgba(16, 185, 129, 0.15);
 }
 
 .banner-info {
@@ -146,6 +211,12 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.banner-badge-live {
+  background: rgba(16, 185, 129, 0.1);
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.2);
 }
 
 .banner-desc {
@@ -338,6 +409,7 @@
   .system-status {
     width: 100%;
     justify-content: space-between;
+    flex-wrap: wrap;
   }
   .dev-banner {
     flex-direction: column;
@@ -353,5 +425,7 @@
     flex-direction: column;
     text-align: center;
   }
+  .toggle-hint {
+    display: none;
+  }
 }
-
