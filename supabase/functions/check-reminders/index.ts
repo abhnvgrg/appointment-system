@@ -3,16 +3,13 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
 
 serve(async (req) => {
   try {
-    // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Get current time and one hour from now
     const now = new Date()
     const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000)
 
-    // Fetch appointments within the next hour that haven't been reminded
     const { data: appointments, error } = await supabase
       .from('appointments')
       .select('*')
@@ -28,13 +25,11 @@ serve(async (req) => {
       )
     }
 
-    // Send reminders for each appointment
     let successCount = 0
     for (const appointment of appointments || []) {
       try {
-        await sendReminderMessage(appointment.phone, appointment.name, appointment.time)
+        await sendReminderSMS(appointment.phone, appointment.name, appointment.time)
 
-        // Update reminder_sent flag
         await supabase
           .from('appointments')
           .update({ reminder_sent: true })
@@ -42,8 +37,8 @@ serve(async (req) => {
 
         successCount++
         console.log(`Reminder sent for appointment ${appointment.id}`)
-      } catch (error) {
-        console.error(`Failed to send reminder for appointment ${appointment.id}:`, error)
+      } catch (err) {
+        console.error(`Failed to send reminder for appointment ${appointment.id}:`, err)
       }
     }
 
@@ -55,59 +50,51 @@ serve(async (req) => {
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     )
-  } catch (error) {
-    console.error('Error:', error)
+  } catch (err) {
+    console.error('Error:', err)
     return new Response(
-      JSON.stringify({ message: 'Internal server error', error: error.message }),
+      JSON.stringify({ message: 'Internal server error', error: err.message }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
 })
 
-async function sendReminderMessage(phone, name, appointmentTime) {
-  try {
-    const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID')
-    const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN')
-    const twilioWhatsAppFrom = Deno.env.get('TWILIO_WHATSAPP_FROM')
+async function sendReminderSMS(phone, name, appointmentTime) {
+  const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID')
+  const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN')
+  const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER')  // same secret as book-appointment
 
-    if (!twilioAccountSid || !twilioAuthToken || !twilioWhatsAppFrom) {
-      console.log('Twilio WhatsApp credentials not configured, skipping reminder message')
-      return
-    }
+  if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
+    console.log('Twilio credentials not configured, skipping reminder')
+    return
+  }
 
-    const appointmentDate = new Date(appointmentTime)
-    const timeStr = appointmentDate.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
+  const timeStr = new Date(appointmentTime).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 
-    const message = `Hi ${name}, reminder: you have an appointment on ${timeStr}. Please be on time. Thank you!`
+  const formData = new FormData()
+  formData.append('To', phone)
+  formData.append('From', twilioPhoneNumber)
+  formData.append('Body', `Hi ${name}, reminder: you have an appointment on ${timeStr}. Please be on time!`)
 
-    const formData = new FormData()
-    formData.append('To', formatWhatsAppAddress(phone))
-    formData.append('From', formatWhatsAppAddress(twilioWhatsAppFrom))
-    formData.append('Body', message)
-
-    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+  const response = await fetch(
+    `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
+    {
       method: 'POST',
       headers: {
         Authorization: `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
       },
       body: formData,
-    })
-
-    if (!response.ok) {
-      console.error('Failed to send reminder message:', await response.text())
-      throw new Error('Failed to send reminder via Twilio')
     }
-  } catch (error) {
-    console.error('Error sending reminder message:', error)
-    throw error
-  }
-}
+  )
 
-function formatWhatsAppAddress(phone) {
-  return phone.startsWith('whatsapp:') ? phone : `whatsapp:${phone}`
+  if (!response.ok) {
+    const errText = await response.text()
+    console.error('Twilio error:', errText)
+    throw new Error('Failed to send reminder SMS')
+  }
 }
